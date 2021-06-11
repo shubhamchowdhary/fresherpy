@@ -1,0 +1,297 @@
+---
+title: "Retail Analysis"
+author: "StepUp Analytics"
+date: "02/06/2021"
+output: word_document
+---
+
+```{r message=F, warning=FALSE}
+install.packages('Hmisc')
+install.packages('dplyr')
+install.packages('ggplot2')
+
+library(dplyr)
+library(ggplot2)
+library(Hmisc)
+```
+
+*Setting and getting working directory*
+
+```{r}
+path = '/Users/md.zishan/Documents/S/StepUp Analytics/Learn and Intern/R Programming/Assignment'
+setwd(path)
+getwd()
+```
+
+*Reading the files*
+
+```{r}
+customer_full_df <- read.csv(
+  'Customer.csv',
+  header = TRUE,
+  stringsAsFactors = FALSE,
+  na.strings = c("", "NA")
+)
+
+transactions_full_df <- read.csv(
+  'Transactions.csv',
+  header = TRUE,
+  stringsAsFactors = FALSE,
+  na.strings = c("", "NA")
+)
+
+prodcat_full_df <- read.csv(
+  'prod_cat_info.csv',
+  header = TRUE,
+  stringsAsFactors = FALSE,
+  na.strings = c("", "NA")
+)
+
+```
+
+**1. Merge the datasets Customers, Product Hierarchy and Transactions as Customer_Final. Ensure to keep all customers who have done transactions with us and select the join type accordingly.**
+
+**1. a) Merge using the base merge()**
+
+```{r}
+trans_cust_df1 <- merge(
+  transactions_full_df,
+  customer_full_df,
+  by.x = "cust_id",
+  by.y = "customer_Id",
+  all.x = TRUE,
+  all.y = FALSE
+)
+
+cust_fin1 <- merge(
+  trans_cust_df1,
+  prodcat_full_df,
+  by.x = c("prod_cat_code", "prod_subcat_code"),
+  by.y = c("prod_cat_code", "prod_sub_cat_code"),
+  all.x = TRUE,
+  all.y = FALSE
+)
+
+cat('Dimensions of dataframe obtained through merge(): ', dim(cust_fin1))
+```
+
+*1. b) Merge using Dplyr merge functions*
+
+```{r}
+trans_cust_df2 <- left_join(transactions_full_df,
+                            customer_full_df,
+                            by = c("cust_id" = "customer_Id"))
+
+Customer_Final <- left_join(
+  trans_cust_df1,
+  prodcat_full_df,
+  by = c("prod_cat_code" = "prod_cat_code",
+         "prod_subcat_code" = "prod_sub_cat_code")
+)
+
+cat('Dimensions of dataframe obtained through dplyr(): ', dim(Customer_Final))
+```
+
+**2. Prepare a summary report for the merged data set.**
+
+*2. a) Get the column names and their corresponding data types.*
+
+```{r}
+
+summary(Customer_Final)
+str(Customer_Final$Qty)
+```
+
+*2. b) Top/Bottom 10 observations*
+
+```{r}
+head(Customer_Final,10)
+tail(Customer_Final,10)
+```
+
+*2. c) “Five-number summary” for continuous variables (min, Q1, median,Q3 and max)*
+
+```{r}
+summary(Customer_Final$Tax)
+
+```
+
+*2. d) Frequency tables for all the categorical variables*
+
+```{r}
+factor(Customer_Final$Store_type)
+```
+
+**3. Generate histograms for all continuous variables and frequency bars for categorical variables.**
+
+*Histograms for continuous variables*
+
+```{r}
+h1 = ggplot(Customer_Final, aes(x = Qty)) +
+  geom_histogram(
+    # binwidth = 0.1,
+    color = "red",
+    linetype = "dashed",
+    fill = "black"
+  )
+
+plot(h1)
+
+```
+
+*Frequency bars for continuous variables*
+
+```{r}
+b1 = ggplot(Customer_Final, aes(x = Qty)) +
+  geom_boxplot(
+  
+    color = "Yellow",
+    linetype = "dashed",
+    fill = "black"
+  )
+
+plot(b1)
+```
+
+**4. Calculate the following information using the merged dataset :**
+
+*4 a) Calculate Time period of the available transaction data.*
+
+```{r}
+
+```
+
+*4 b) Calculate count of transactions where the total amount of transaction was negative*
+
+```{r}
+
+a = Customer_Final %>% count(total_amt < 0)
+rownames(a) = c('Positive','Negative')
+colnames(a) = c('Transactions','total_amt')
+a
+
+```
+
+**5. Analyze which product categories are more popular among females vs male customers.**
+
+*Most popular categories among males*
+
+```{r}
+
+Customer_Final
+male = group_by(Customer_Final,prod_cat)
+
+summarise(
+  male,
+  only_male = sum(Gender=="M",na.rm = TRUE) 
+)
+
+
+
+
+
+```
+
+*Most popular categories among Females*
+
+```{r}
+Customer_Final
+female = group_by(Customer_Final,prod_cat)
+summarise(
+  female,
+  only_Female = sum(Gender=="F", na.rm = TRUE)
+  
+)
+
+
+```
+
+*The top 3 categories for both males and females are:*
+
+* Books
+
+* Electronics
+
+* Home and kitchen
+
+**6. Which City code has the maximum customers and what was the percentage of customers from that city?**
+
+*Percentage of customers belonging to different city codes sorted in descending order:*
+
+```{r}
+Customer_Final
+a6 = arrange(Customer_Final,city_code)
+a6
+
+
+
+
+```
+
+The highest percentage of customers come from city code 4 (10.51%)
+
+**7. Which store type sells the maximum products by value and by quantity?**
+
+*Products sold by value:*
+
+```{r}
+Customer_Final
+stores_grp = group_by(Customer_Final,Store_type)
+summarise(
+  stores_grp,
+  sold_by_value = sum(total_amt) )
+
+
+```
+
+```{r}
+Customer_Final
+stores_grp = group_by(Customer_Final,Store_type)
+summarise(
+  stores_grp,
+  sold_by_Quantity = sum(Qty) )
+
+```
+
+**8. What was the total amount earned from the "Electronics" and "Clothing"categories from Flagship Stores?**
+
+```{r}
+Customer_Final
+a8 = group_by(Customer_Final,Store_type, prod_cat)
+
+summarise(a8,sum(total_amt))
+
+
+
+```
+
+**9. What was the total amount earned from "Male" customers under the "Electronics" category?**
+
+```{r}
+# Customer_Final
+# a9 = group_by(Customer_Final,Gender,prod_cat)
+# 
+# summarise(a9,sum(total_amt,na.rm = TRUE))
+Customer_Final
+a9 = group_by(Customer_Final,prod_cat)
+
+summarise(
+  a9,
+  only_male = sum(Gender=="M",na.rm = TRUE) 
+)
+
+
+```
+
+**10. How many customers have more than 10 unique transactions, after removing all transactions which have any negative amounts?**
+
+```{r}
+Customer_Final
+a10 = filter(Customer_Final,total_amt>0)
+a10
+summarise(
+  a10,
+  after_removing_negative = sum(total_amt))
+
+
+```
